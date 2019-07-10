@@ -1,6 +1,7 @@
 # func_argparser
 
 Generate a nice command line interface for a list of functions or a module.
+Never worry about your Argparser being out of sync with your code.
 
 ## Example
 
@@ -57,11 +58,7 @@ optional arguments:
   -h, --help   show this help message and exit
 
 $ python hello.py hello --help
-usage: Say hello.
-
-    Arguments:
-        user: name of the user
-
+usage: hello.py hello [-h] -u USER [-t TIMES]
 
 optional arguments:
   -h, --help            show this help message and exit
