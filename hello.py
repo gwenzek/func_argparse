@@ -18,4 +18,4 @@ def bye(user: str, see_you: float = 1.0):
 
 
 if __name__ == "__main__":
-    func_argparser.run_main()
+    func_argparser.main()

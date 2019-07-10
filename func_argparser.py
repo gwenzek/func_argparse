@@ -8,7 +8,7 @@ from typing import Callable, Dict, List, Optional, Set
 OPTIONAL_TYPE = type(Optional[int])
 
 
-def run_main(*fns: Callable, description: str = None, module: ModuleType = None):
+def main(*fns: Callable, description: str = None, module: ModuleType = None):
     """Parses command line arguments and call the chosen function with them.
 
     Arguments:
@@ -31,6 +31,8 @@ def make_main(*fns: Callable, module=None, description=None):
         description = module.__doc__
 
     if not fns:
+        # We only keep FunctionType because argspec works with those.
+        # This will exclude builtins and C-funtions.
         fns = tuple(
             fn
             for n, fn in vars(module).items()
