@@ -3,7 +3,7 @@ import inspect
 import sys
 
 from types import FunctionType, ModuleType
-from typing import Callable, List, Optional, Set
+from typing import Callable, Dict, List, Optional, Set
 
 OPTIONAL_TYPE = type(Optional[int])
 
@@ -31,11 +31,11 @@ def make_main(*fns: Callable, module=None, description=None):
         description = module.__doc__
 
     if not fns:
-        fns = [
+        fns = tuple(
             fn
             for n, fn in vars(module).items()
             if not n.startswith("_") and isinstance(fn, FunctionType)
-        ]
+        )
     parser = multi_argparser(*fns, description=description)
 
     def main(args: List[str]):
@@ -58,14 +58,27 @@ def get_fn_description(fn: Callable) -> Optional[str]:
     return description.strip()
 
 
+def get_arguments_description(fn: Callable, arguments: List[str]) -> Dict[str, str]:
+    """Returns the description of each argument."""
+    if not fn.__doc__:
+        return {}
+    descriptions = {}
+    lines = list(filter(None, (l.strip("-* ") for l in fn.__doc__.split("\n"))))
+    for a in arguments:
+        d = next((l for l in lines if l.startswith(a)), None)
+        if not d:
+            continue
+        d = d[len(a) :].strip(" :")
+        descriptions[a] = d
+    return descriptions
+
+
 def multi_argparser(*fns: Callable, description=None) -> argparse.ArgumentParser:
     """Creates an ArgumentParser with one subparser for each given function."""
     parser = argparse.ArgumentParser(description=description, add_help=True)
     subparsers = parser.add_subparsers()
     for fn in fns:
-        p = subparsers.add_parser(
-            fn.__name__, help=get_fn_description(fn), usage=fn.__doc__
-        )
+        p = subparsers.add_parser(fn.__name__, help=get_fn_description(fn))
         p.set_defaults(__command=fn)
         fn_argparser(fn, p)
 
@@ -84,6 +97,8 @@ def fn_argparser(
     for a in spec.args:
         assert a in spec.annotations, f"Need a type annotation for argument {a} of {fn}"
 
+    args_desc = get_arguments_description(fn, spec.args)
+
     if spec.defaults:
         defaults = dict(zip(reversed(spec.args), reversed(spec.defaults)))
     else:
@@ -91,11 +106,12 @@ def fn_argparser(
 
     prefixes: Set[str] = set()
     for a, t in spec.annotations.items():
+        doc = args_desc.get(a, None)
         if t == bool:
             assert not defaults.get(
                 a, False
             ), f"Boolean arg {a} of {fn} must default to False"
-            parser.add_argument(f"--{a}", action="store_true")
+            parser.add_argument(f"--{a}", action="store_true", help=doc)
             continue
         if isinstance(t, OPTIONAL_TYPE):
             # t can also be a union, but we don't support them yet
@@ -111,6 +127,10 @@ def fn_argparser(
             flags.insert(0, f"-{a[0]}")
             prefixes.add(a[0])
         parser.add_argument(
-            *flags, type=t, default=defaults.get(a), required=a not in defaults
+            *flags,
+            type=t,
+            default=defaults.get(a),
+            required=a not in defaults,
+            help=doc,
         )
     return parser
