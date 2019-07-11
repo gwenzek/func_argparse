@@ -75,16 +75,20 @@ def get_arguments_description(fn: Callable, arguments: List[str]) -> Dict[str, s
     return descriptions
 
 
-def multi_argparser(*fns: Callable, description=None) -> argparse.ArgumentParser:
+def multi_argparser(*fns: Callable, description: str = None) -> argparse.ArgumentParser:
     """Creates an ArgumentParser with one subparser for each given function."""
     parser = argparse.ArgumentParser(description=description, add_help=True)
     subparsers = parser.add_subparsers()
     for fn in fns:
-        p = subparsers.add_parser(fn.__name__, help=get_fn_description(fn))
-        p.set_defaults(__command=fn)
-        fn_argparser(fn, p)
+        add_fn_subparser(fn, subparsers)
 
     return parser
+
+
+def add_fn_subparser(fn: Callable, subparsers: argparse._SubParsersAction):
+    p = subparsers.add_parser(fn.__name__, help=get_fn_description(fn))
+    p.set_defaults(__command=fn)
+    fn_argparser(fn, p)
 
 
 def fn_argparser(
@@ -109,11 +113,15 @@ def fn_argparser(
     prefixes: Set[str] = set()
     for a, t in spec.annotations.items():
         doc = args_desc.get(a, None)
+        flags = [f"--{a}"]
+        if a[0] not in prefixes:
+            flags.insert(0, f"-{a[0]}")
+            prefixes.add(a[0])
+
         if t == bool:
-            assert not defaults.get(
-                a, False
-            ), f"Boolean arg {a} of {fn} must default to False"
-            parser.add_argument(f"--{a}", action="store_true", help=doc)
+            d = defaults.get(a, False)
+            parser.add_argument(*flags, default=d, action="store_true", help=doc)
+            parser.add_argument(f"--no-{a}", dest=a, action="store_false", help=doc)
             continue
         if isinstance(t, OPTIONAL_TYPE):
             # t can also be a union, but we don't support them yet
@@ -124,10 +132,6 @@ def fn_argparser(
             if a not in defaults:
                 defaults[a] = None
 
-        flags = [f"--{a}"]
-        if a[0] not in prefixes:
-            flags.insert(0, f"-{a[0]}")
-            prefixes.add(a[0])
         parser.add_argument(
             *flags,
             type=t,
