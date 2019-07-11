@@ -65,3 +65,20 @@ optional arguments:
   -u USER, --user USER  name of the user
   -t TIMES, --times TIMES
 ```
+
+
+## Gotchas
+
+- All arguments of the function need a type hint.
+- Arguments without default value will be marked as required.
+- A boolean argument `a` will generate two flags: `--a` and `--no-a`.
+- A boolean argument with no default value will be assumed to default to `False`.
+- The function docstring will be parsed to extract the help messages.
+  - First line is used as help message for the function
+  - A line starting with 'x' will be used to extract the documentation for argument 'x'.
+    Spaces, dashes and column will be stripped before displaying.
+- Some kind of functions (notably builtin and C-function) can't be inspected and
+  we can't generate Argparser for them.
+- `fn_argparser` works with classics `argparse.Argparser` you can mix and match
+  them with hand-written parsers.
+- You can't have a function with an argument named `__command` when using `multi_parser`.
