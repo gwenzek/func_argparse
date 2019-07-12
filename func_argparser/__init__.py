@@ -20,6 +20,13 @@ def main(*fns: Callable, description: str = None, module: ModuleType = None):
     make_main(*fns, module=module, description=description)(sys.argv[1:])
 
 
+def single_main(fn: Callable):
+    """Parses command line arguments and call the given function with them."""
+    parser = func_argparser(fn)
+    args = parser.parse_args(sys.argv[1:])
+    return fn(**vars(args))
+
+
 def make_main(*fns: Callable, module: ModuleType = None, description=None):
     """Creates a main method for the given module / list of functions.
 
@@ -29,7 +36,6 @@ def make_main(*fns: Callable, module: ModuleType = None, description=None):
         module = sys.modules["__main__"]
     if description is None:
         description = module.__doc__
-
     if not fns:
         fns = tuple(resolve_public_fns(module))
     parser = multi_argparser(*fns, description=description)
@@ -100,12 +106,12 @@ def multi_argparser(*fns: Callable, description: str = None) -> argparse.Argumen
 def add_fn_subparser(fn: Callable, subparsers: argparse._SubParsersAction):
     p = subparsers.add_parser(fn.__name__, help=get_fn_description(fn))
     p.set_defaults(__command=fn)
-    fn_argparser(fn, p)
+    func_argparser(fn, p)
 
 
-def fn_argparser(
+def func_argparser(
     fn: Callable, parser: Optional[argparse.ArgumentParser] = None
-) -> Optional[argparse.ArgumentParser]:
+) -> argparse.ArgumentParser:
     """Creates an ArgumentParser for the given function."""
     if not parser:
         parser = argparse.ArgumentParser(description=get_fn_description(fn))

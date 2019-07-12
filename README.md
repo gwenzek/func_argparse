@@ -70,18 +70,19 @@ optional arguments:
 
 ## Gotchas
 
-- All arguments of the function need a type hint.
+- `func_argparser.main()` create one CLI command by "public" function from a file / module.
+- Use `func_argparser.single_main(my_main)` if you only have one entry point in your file.
+- All functions arguments need a type hint.
 - Arguments without default value will be marked as required.
 - A boolean argument `a` will generate two flags: `--a` and `--no-a`.
-- A boolean argument with no default value will be assumed to default to `False`.
 - A boolean argument with no default value will be assumed to default to `False`.
 - The first argument starting with letter `a` will also be available with the flag `-a`.
 - The function docstring will be parsed to extract the help messages.
   - First line is used as help message for the function
-  - A line starting with `a` will be used to extract the documentation for argument `a`.
+  - First line starting with `a` will be used to extract the documentation for argument `a`.
     Spaces, dashes and columns will be stripped before displaying.
 - Some kind of functions (notably builtin and C-function) can't be inspected and
   we can't generate Argparser for them.
 - `fn_argparser` works with classics `argparse.Argparser` you can mix and match
   them with hand-written parsers.
-- You can't have a function with an argument named `__command` when using `multi_parser`.
+- You can't have a function with an argument named `__command` when using `main` or `multi_parser`.

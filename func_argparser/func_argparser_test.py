@@ -1,4 +1,4 @@
-from . import fn_argparser, multi_argparser
+from . import func_argparser, multi_argparser
 
 from typing import Optional
 
@@ -12,7 +12,7 @@ def test_int_flag():
     def f(xx: int, yy: int = 1):
         pass
 
-    parser = fn_argparser(f)
+    parser = func_argparser(f)
     check(parser, ["--xx", "1"], dict(xx=1, yy=1))
     check(parser, ["--xx", "1", "--yy", "-3"], dict(xx=1, yy=-3))
     check(parser, ["-x", "1", "-y", "-3"], dict(xx=1, yy=-3))
@@ -22,7 +22,7 @@ def test_bool_flag():
     def f(xx: bool, yy: bool = True, zz: bool = False):
         pass
 
-    parser = fn_argparser(f)
+    parser = func_argparser(f)
     check(parser, [], dict(xx=False, yy=True, zz=False))
     check(parser, ["--xx", "--yy"], dict(xx=True, yy=True, zz=False))
     check(parser, ["--xx", "--yy", "--zz"], dict(xx=True, yy=True, zz=True))
@@ -36,14 +36,14 @@ def test_optional():
     def f(xx: str = None):
         pass
 
-    parser = fn_argparser(f)
+    parser = func_argparser(f)
     check(parser, [], dict(xx=None))
     check(parser, ["--xx", "foo"], dict(xx="foo"))
 
     def g(xx: Optional[str]):
         pass
 
-    parser = fn_argparser(g)
+    parser = func_argparser(g)
     check(parser, [], dict(xx=None))
     check(parser, ["--xx", "foo"], dict(xx="foo"))
 
