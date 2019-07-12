@@ -57,13 +57,14 @@ positional arguments:
 optional arguments:
   -h, --help   show this help message and exit
 
-$ python hello.py hello --help
-usage: hello.py hello [-h] -u USER [-t TIMES]
+$ python hello.py bye --help
+usage: hello.py bye [-h] -u USER [-s SEE_YOU]
 
 optional arguments:
   -h, --help            show this help message and exit
-  -u USER, --user USER  name of the user
-  -t TIMES, --times TIMES
+  -u USER, --user USER
+  -s SEE_YOU, --see_you SEE_YOU
+                        (default=1.0)
 ```
 
 
@@ -73,10 +74,12 @@ optional arguments:
 - Arguments without default value will be marked as required.
 - A boolean argument `a` will generate two flags: `--a` and `--no-a`.
 - A boolean argument with no default value will be assumed to default to `False`.
+- A boolean argument with no default value will be assumed to default to `False`.
+- The first argument starting with letter `a` will also be available with the flag `-a`.
 - The function docstring will be parsed to extract the help messages.
   - First line is used as help message for the function
-  - A line starting with 'x' will be used to extract the documentation for argument 'x'.
-    Spaces, dashes and column will be stripped before displaying.
+  - A line starting with `a` will be used to extract the documentation for argument `a`.
+    Spaces, dashes and columns will be stripped before displaying.
 - Some kind of functions (notably builtin and C-function) can't be inspected and
   we can't generate Argparser for them.
 - `fn_argparser` works with classics `argparse.Argparser` you can mix and match

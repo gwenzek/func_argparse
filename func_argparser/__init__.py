@@ -3,7 +3,7 @@ import inspect
 import sys
 
 from types import FunctionType, ModuleType
-from typing import Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set
 
 OPTIONAL_TYPE = type(Optional[int])
 
@@ -20,7 +20,7 @@ def main(*fns: Callable, description: str = None, module: ModuleType = None):
     make_main(*fns, module=module, description=description)(sys.argv[1:])
 
 
-def make_main(*fns: Callable, module=None, description=None):
+def make_main(*fns: Callable, module: ModuleType = None, description=None):
     """Creates a main method for the given module / list of functions.
 
     The returned method expects a list of command line arguments.
@@ -31,13 +31,7 @@ def make_main(*fns: Callable, module=None, description=None):
         description = module.__doc__
 
     if not fns:
-        # We only keep FunctionType because argspec works with those.
-        # This will exclude builtins and C-funtions.
-        fns = tuple(
-            fn
-            for n, fn in vars(module).items()
-            if not n.startswith("_") and isinstance(fn, FunctionType)
-        )
+        fns = tuple(resolve_public_fns(module))
     parser = multi_argparser(*fns, description=description)
 
     def main(args: List[str]):
@@ -50,6 +44,20 @@ def make_main(*fns: Callable, module=None, description=None):
     return main
 
 
+def resolve_public_fns(module: ModuleType = None) -> List[FunctionType]:
+    if module is None:
+        module = sys.modules["__main__"]
+
+    # We only keep FunctionType because argspec works with those.
+    # This will exclude builtins and C-funtions.
+    fns = list(
+        fn
+        for n, fn in vars(module).items()
+        if not n.startswith("_") and isinstance(fn, FunctionType)
+    )
+    return [fn for fn in fns if fn.__module__ == module.__name__]
+
+
 def get_fn_description(fn: Callable) -> Optional[str]:
     """Returns the first line of a function doc string."""
     if not fn.__doc__:
@@ -60,18 +68,22 @@ def get_fn_description(fn: Callable) -> Optional[str]:
     return description.strip()
 
 
-def get_arguments_description(fn: Callable, arguments: List[str]) -> Dict[str, str]:
-    """Returns the description of each argument."""
+def _get_arguments_description(
+    fn: Callable, arguments: List[str], defaults: Dict[str, Any]
+) -> Dict[str, str]:
+    """Returns a description for each argument."""
     if not fn.__doc__:
         return {}
     descriptions = {}
     lines = list(filter(None, (l.strip("-* ") for l in fn.__doc__.split("\n"))))
     for a in arguments:
-        d = next((l for l in lines if l.startswith(a)), None)
-        if not d:
-            continue
-        d = d[len(a) :].strip(" :")
-        descriptions[a] = d
+        # TODO: some arguments may have more than one line of documentation.
+        doc = next((l[len(a) :].strip(" :") for l in lines if l.startswith(a)), None)
+        default = defaults.get(a)
+        # Don't show values defaulting to None.
+        default_doc = f"(default={default})" if default is not None else None
+        descriptions[a] = " ".join(filter(None, (doc, default_doc)))
+
     return descriptions
 
 
@@ -103,16 +115,15 @@ def fn_argparser(
     for a in spec.args:
         assert a in spec.annotations, f"Need a type annotation for argument {a} of {fn}"
 
-    args_desc = get_arguments_description(fn, spec.args)
-
     if spec.defaults:
         defaults = dict(zip(reversed(spec.args), reversed(spec.defaults)))
     else:
         defaults = {}
+    args_desc = _get_arguments_description(fn, spec.args, defaults)
 
     prefixes: Set[str] = set()
     for a, t in spec.annotations.items():
-        doc = args_desc.get(a, None)
+        doc = args_desc.get(a)
         flags = [f"--{a}"]
         if a[0] not in prefixes:
             flags.insert(0, f"-{a[0]}")
