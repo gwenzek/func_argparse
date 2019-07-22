@@ -1,5 +1,7 @@
 import argparse
+import enum
 import inspect
+import functools
 import sys
 
 from types import FunctionType, ModuleType
@@ -17,7 +19,7 @@ def main(*fns: Callable, description: str = None, module: ModuleType = None):
         - description: help message to show on command line
         - module: will use the module to search functions and chose the description.
     """
-    make_main(*fns, module=module, description=description)(sys.argv[1:])
+    return make_main(*fns, module=module, description=description)(sys.argv[1:])
 
 
 def single_main(fn: Callable):
@@ -109,6 +111,21 @@ def add_fn_subparser(fn: Callable, subparsers: argparse._SubParsersAction):
     func_argparser(fn, p)
 
 
+def _str_to_enum(enum: enum.EnumMeta, flags: List[str], value: str):
+    members = tuple(enum.__members__)
+    # enum members might be case sensitive.
+    if value in members:
+        return enum[value]
+    if value.upper() in members:
+        return enum[value.upper()]
+
+    # Mimick argparse error message for choices.
+    # See https://github.com/python/cpython/blob/3.7/Lib/argparse.py#L2420
+    msg = f"invalid choice: '{value}' (choose from {', '.join(members)})"
+    action = argparse.Action(flags, "")
+    raise argparse.ArgumentError(action, msg)
+
+
 def func_argparser(
     fn: Callable, parser: Optional[argparse.ArgumentParser] = None
 ) -> argparse.ArgumentParser:
@@ -135,16 +152,20 @@ def func_argparser(
             flags.insert(0, f"-{a[0]}")
             prefixes.add(a[0])
 
-        if t == bool:
+        if t is bool:
             d = defaults.get(a, False)
             parser.add_argument(*flags, default=d, action="store_true", help=doc)
             parser.add_argument(f"--no-{a}", dest=a, action="store_false", help=doc)
             continue
+
+        if isinstance(t, enum.EnumMeta):
+            t = functools.partial(_str_to_enum, t, flags)
+
         if isinstance(t, OPTIONAL_TYPE):
             # t can also be a union, but we don't support them yet
-            assert t.__args__[1] == type(
-                None
-            ), f"Unsupported type {t} for argument {a} of {fn}"  # noqa: E721
+            assert issubclass(
+                t.__args__[1], type(None)
+            ), f"Unsupported type {t} for argument {a} of {fn}"
             t = t.__args__[0]
             if a not in defaults:
                 defaults[a] = None
