@@ -207,3 +207,48 @@ def func_argparser(
             help=doc,
         )
     return parser
+
+
+def override(
+    argparser: argparse.ArgumentParser,
+    name: str,
+    short_name: str = None,
+    # nargs=None,
+    default: Any = None,
+    type: Any = None,
+    choices: Any = None,
+    required: bool = None,
+    help: str = None,
+    metavar: str = None,
+):
+    # Notes:
+    #   - nargs: TODO
+    #   - dest: Can't be changed afterward since it would result in some fn arg
+    #     not being filled.
+    #   - const: I don't think we want to change those, they are only use by
+    #     boolean flags.
+    candidates = [a for a in argparser._actions if f"--{name}" in a.option_strings]
+    assert candidates, f"Can't override behavior of unknown argument {name}."
+    assert len(candidates) == 1, f"Found several arguments named {name}."
+    action = candidates[0]
+    if short_name is not None:
+        action.option_strings = [short_name, f"--{name}"]
+    if default is not None:
+        action.default = default
+        action.required = False
+    if type is not None:
+        action.type = type
+    if choices is not None:
+        # Useful if you don't want to rewrite code to use enum
+        action.choices = choices
+    if required is not None:
+        assert (
+            required or default is not None
+        ), "Need a default value to make an argument optional."
+        if required:
+            action.required = required
+            action.default = None
+    if help is not None:
+        action.help = None
+    if metavar is not None:
+        action.metavar = metavar

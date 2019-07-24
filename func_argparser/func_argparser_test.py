@@ -5,7 +5,7 @@ import sys
 
 from typing import Optional, Union
 
-from . import func_argparser, multi_argparser
+from . import func_argparser, multi_argparser, override
 
 
 def check(parser, args, expected):
@@ -33,6 +33,7 @@ def test_int_flag():
     check(parser, ["--xx", "1", "--yy", "-3"], dict(xx=1, yy=-3))
     check(parser, ["-x", "1", "-y", "-3"], dict(xx=1, yy=-3))
     check_fail(parser, ["-x", "foo"], "argument -x/--xx: invalid int value: 'foo'")
+    check_fail(parser, ["-y", "1"], "the following arguments are required: -x/--xx")
 
 
 def test_bool_flag():
@@ -153,3 +154,32 @@ def test_help(capsys):
     out = capsys.readouterr().out
     assert "Awesome documentation." in out
     assert "the y coordinate (default=1)" in out
+
+
+def test_override_required():
+    def f(xx: int, yy: int = 1):
+        pass
+
+    parser = func_argparser(f)
+    check_fail(parser, [], "the following arguments are required: -x/--xx")
+    check_fail(parser, ["--yy", "3"], "the following arguments are required: -x/--xx")
+
+    override(parser, "xx", default=2)
+    override(parser, "yy", required=True)
+
+    check_fail(parser, [], "the following arguments are required: -y/--yy")
+    check(parser, ["--yy", "3"], dict(xx=2, yy=3))
+
+
+def test_override_type():
+    def f(xx: int = 0xFFF):
+        pass
+
+    parser = func_argparser(f)
+    check_fail(
+        parser, ["--xx", "0xF00"], "argument -x/--xx: invalid int value: '0xF00'"
+    )
+
+    override(parser, "xx", type=lambda x: int(x, 0))
+
+    check(parser, ["--xx", "0xF00"], dict(xx=0xF00))
