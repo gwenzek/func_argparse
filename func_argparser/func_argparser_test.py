@@ -3,7 +3,6 @@ import io
 import pytest
 import sys
 
-from pathlib import Path
 from typing import Optional, Union
 
 from . import func_argparser, multi_argparser
@@ -66,13 +65,37 @@ def test_optional():
     check(parser, ["--xx", "foo"], dict(xx="foo"))
 
 
-def test_union_not_implemented():
-    # TODO: implement
-    def f(xx: Union[str, Path]):
+def test_union():
+    def f(xx: Union[int, float]):
         pass
 
-    with pytest.raises(AssertionError, match="Unsupported type"):
-        func_argparser(f)
+    parser = func_argparser(f)
+    check(parser, ["--xx", "3"], dict(xx=3))
+    check(parser, ["--x", "3.1"], dict(xx=3.1))
+    check_fail(
+        parser,
+        ["-x", "foo"],
+        "argument -x/--xx: invalid Union[int, float] value: 'foo'",
+    )
+
+    def g(xx: Union[str, int]):
+        pass
+
+    parser = func_argparser(g)
+    check(parser, ["--xx", "foo"], dict(xx="foo"))
+    # Union types are tried in the order they are specified
+    check(parser, ["--xx", "3"], dict(xx="3"))
+
+    class Color(enum.Enum):
+        RED = 1
+
+    def h(xx: Union[int, Color, str]):
+        pass
+
+    parser = func_argparser(h)
+    check(parser, ["--xx", "3"], dict(xx=3))
+    check(parser, ["--xx", "red"], dict(xx=Color.RED))
+    check(parser, ["--xx", "foo"], dict(xx="foo"))
 
 
 def test_enum():

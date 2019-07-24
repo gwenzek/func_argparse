@@ -5,9 +5,10 @@ import functools
 import sys
 
 from types import FunctionType, ModuleType
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set, Union
 
-OPTIONAL_TYPE = type(Optional[int])
+UNION_TYPE = type(Union[int, str])
+Parser = Callable[[str], Any]
 
 
 def main(*fns: Callable, description: str = None, module: ModuleType = None):
@@ -111,7 +112,15 @@ def add_fn_subparser(fn: Callable, subparsers: argparse._SubParsersAction):
     func_argparser(fn, p)
 
 
-def _str_to_enum(enum: enum.EnumMeta, flags: List[str], value: str):
+def _is_option_type(t: type) -> bool:
+    return (
+        isinstance(t, UNION_TYPE)
+        and len(t.__args__) == 2
+        and issubclass(t.__args__[1], type(None))
+    )
+
+
+def _parse_enum(enum: enum.EnumMeta, flags: List[str], value: str) -> enum.Enum:
     members = tuple(enum.__members__)
     # enum members might be case sensitive.
     if value in members:
@@ -124,6 +133,34 @@ def _str_to_enum(enum: enum.EnumMeta, flags: List[str], value: str):
     msg = f"invalid choice: '{value}' (choose from {', '.join(members)})"
     action = argparse.Action(flags, "")
     raise argparse.ArgumentError(action, msg)
+
+
+def _parse_union(parsers: List[Parser], union, flags: List[str], value: str) -> Any:
+    for p in parsers:
+        try:
+            return p(value)
+        except Exception:
+            continue
+    pretty = str(union)[len("typing.") :]
+    msg = f"invalid {pretty} value: '{value}'"
+    action = argparse.Action(flags, "")
+    raise argparse.ArgumentError(action, msg)
+
+
+def _get_parser(t, flags: List[str]):
+    if isinstance(t, enum.EnumMeta):
+        return functools.partial(_parse_enum, t, flags)
+    elif _is_option_type(t):
+        return _get_parser(t.__args__[0], flags)
+    elif isinstance(t, UNION_TYPE):
+        parsers = [
+            _get_parser(st, flags)
+            for st in t.__args__
+            if not issubclass(st, type(None))
+        ]
+        return functools.partial(_parse_union, parsers, t, flags)
+    else:
+        return t
 
 
 def func_argparser(
@@ -155,24 +192,16 @@ def func_argparser(
         if t is bool:
             d = defaults.get(a, False)
             parser.add_argument(*flags, default=d, action="store_true", help=doc)
-            parser.add_argument(f"--no-{a}", dest=a, action="store_false", help=doc)
+            parser.add_argument(f"--no-{a}", dest=a, action="store_false")
             continue
 
-        if isinstance(t, enum.EnumMeta):
-            t = functools.partial(_str_to_enum, t, flags)
-
-        if isinstance(t, OPTIONAL_TYPE):
-            # t can also be a union, but we don't support them yet
-            assert issubclass(
-                t.__args__[1], type(None)
-            ), f"Unsupported type {t} for argument {a} of {fn}"
-            t = t.__args__[0]
+        if _is_option_type(t):
             if a not in defaults:
                 defaults[a] = None
 
         parser.add_argument(
             *flags,
-            type=t,
+            type=_get_parser(t, flags),
             default=defaults.get(a),
             required=a not in defaults,
             help=doc,
