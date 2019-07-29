@@ -183,3 +183,20 @@ def test_override_type():
     override(parser, "xx", type=lambda x: int(x, 0))
 
     check(parser, ["--xx", "0xF00"], dict(xx=0xF00))
+
+
+def test_override_choice():
+    def f(xx: str):
+        assert xx in ("foo", "foobar", "bar")
+
+    parser = func_argparser(f)
+    check(parser, ["--xx", "bar"], dict(xx="bar"))
+    check(parser, ["--xx", "baz"], dict(xx="baz"))
+
+    override(parser, "xx", choices=("foo", "foobar", "bar"))
+    check(parser, ["--xx", "bar"], dict(xx="bar"))
+    check_fail(
+        parser,
+        ["--xx", "baz"],
+        "invalid choice: 'baz' (choose from 'foo', 'foobar', 'bar')",
+    )

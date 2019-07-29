@@ -112,7 +112,7 @@ def add_fn_subparser(fn: Callable, subparsers: argparse._SubParsersAction):
     func_argparser(fn, p)
 
 
-def _is_option_type(t: type) -> bool:
+def _is_option_type(t: Callable) -> bool:
     return (
         isinstance(t, UNION_TYPE)
         and len(t.__args__) == 2
@@ -147,10 +147,11 @@ def _parse_union(parsers: List[Parser], union, flags: List[str], value: str) -> 
     raise argparse.ArgumentError(action, msg)
 
 
-def _get_parser(t, flags: List[str]):
+def _get_parser(t: Parser, flags: List[str]):
     if isinstance(t, enum.EnumMeta):
         return functools.partial(_parse_enum, t, flags)
     elif _is_option_type(t):
+        assert isinstance(t, UNION_TYPE)
         return _get_parser(t.__args__[0], flags)
     elif isinstance(t, UNION_TYPE):
         parsers = [
@@ -213,7 +214,8 @@ def override(
     argparser: argparse.ArgumentParser,
     name: str,
     short_name: str = None,
-    # nargs=None,
+    # action: str = None,
+    # nargs: str =None,
     default: Any = None,
     type: Any = None,
     choices: Any = None,
@@ -223,6 +225,7 @@ def override(
 ):
     # Notes:
     #   - nargs: TODO
+    #   - actions: supporting this will require recreating the action
     #   - dest: Can't be changed afterward since it would result in some fn arg
     #     not being filled.
     #   - const: I don't think we want to change those, they are only use by
