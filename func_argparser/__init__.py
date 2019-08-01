@@ -78,19 +78,25 @@ def get_fn_description(fn: Callable) -> Optional[str]:
 
 
 def _get_arguments_description(
-    fn: Callable, arguments: List[str], defaults: Dict[str, Any]
+    fn: Callable, signature: inspect.FullArgSpec, defaults: Dict[str, Any]
 ) -> Dict[str, str]:
     """Returns a description for each argument."""
     if not fn.__doc__:
         return {}
     descriptions = {}
     lines = list(filter(None, (l.strip("-* ") for l in fn.__doc__.split("\n"))))
-    for a in arguments:
+    for a in signature.args:
         # TODO: some arguments may have more than one line of documentation.
         doc = next((l[len(a) :].strip(" :") for l in lines if l.startswith(a)), None)
         default = defaults.get(a)
+
         # Don't show values defaulting to None.
         default_doc = f"(default={default})" if default is not None else None
+
+        # Only talk about the --no flag if the default is True
+        if signature.annotations.get(a) == bool and default is True:
+            default_doc = f"(default={default}, --no-{a} to disable)"
+
         descriptions[a] = " ".join(filter(None, (doc, default_doc)))
 
     return descriptions
@@ -180,20 +186,26 @@ def func_argparser(
         defaults = dict(zip(reversed(spec.args), reversed(spec.defaults)))
     else:
         defaults = {}
-    args_desc = _get_arguments_description(fn, spec.args, defaults)
+    args_desc = _get_arguments_description(fn, spec, defaults)
 
-    prefixes: Set[str] = set()
+    # One letter arguments are given the short flags.
+    prefixes: Set[str] = set(a for a in spec.args if len(a) == 1)
     for a, t in spec.annotations.items():
+        if a == "return":
+            continue
         doc = args_desc.get(a)
         flags = [f"--{a}"]
-        if a[0] not in prefixes:
+        if len(a) == 1 or a[0] not in prefixes:
             flags.insert(0, f"-{a[0]}")
             prefixes.add(a[0])
 
         if t is bool:
             d = defaults.get(a, False)
             parser.add_argument(*flags, default=d, action="store_true", help=doc)
-            parser.add_argument(f"--no-{a}", dest=a, action="store_false")
+            # The --no flags are hidden
+            parser.add_argument(
+                f"--no-{a}", dest=a, action="store_false", help=argparse.SUPPRESS
+            )
             continue
 
         if _is_option_type(t):

@@ -10,7 +10,7 @@ from . import func_argparser, multi_argparser, override
 
 def check(parser, args, expected):
     parsed = parser.parse_args(args)
-    assert vars(parsed) == expected
+    assert expected == vars(parsed)
 
 
 def check_fail(parser, args, error):
@@ -34,6 +34,16 @@ def test_int_flag():
     check(parser, ["-x", "1", "-y", "-3"], dict(xx=1, yy=-3))
     check_fail(parser, ["-x", "foo"], "argument -x/--xx: invalid int value: 'foo'")
     check_fail(parser, ["-y", "1"], "the following arguments are required: -x/--xx")
+
+
+def test_return_type():
+    def f(xx: int, yy: int = 1) -> int:
+        pass
+
+    parser = func_argparser(f)
+    check(parser, ["--xx", "1"], dict(xx=1, yy=1))
+    check(parser, ["-x", "1", "-y", "-3"], dict(xx=1, yy=-3))
+    check_fail(parser, ["-x", "foo"], "argument -x/--xx: invalid int value: 'foo'")
 
 
 def test_bool_flag():
@@ -140,6 +150,16 @@ def test_flag_collision():
     check(parser, ["--xx", "1", "--xxx", "-3"], dict(xx=1, xxx=-3))
     check(parser, ["-x", "3"], dict(xx=3, xxx=1))
 
+    def g(xx: int = 0, x: int = 1):
+        pass
+
+    parser = func_argparser(g)
+    check(parser, ["--xx", "1"], dict(xx=1, x=1))
+    check(parser, ["--xx", "1", "--x", "-3"], dict(xx=1, x=-3))
+    check(parser, ["--xx", "1", "-x", "-3"], dict(xx=1, x=-3))
+    check(parser, ["--x", "3"], dict(xx=0, x=3))
+    check(parser, ["-x", "3"], dict(xx=0, x=3))
+
 
 def test_help(capsys):
     def f(xx: int, yy: int = 1):
@@ -154,6 +174,22 @@ def test_help(capsys):
     out = capsys.readouterr().out
     assert "Awesome documentation." in out
     assert "the y coordinate (default=1)" in out
+
+
+def test_help_bool_flag(capsys):
+    def f(xx: bool = False, yy: bool = True):
+        """Awesome documentation.
+
+        xx: use some xx
+        yy: use some yy
+        """
+        pass
+
+    func_argparser(f).print_help()
+    out = capsys.readouterr().out
+    assert "Awesome documentation." in out
+    assert "use some xx (default=False)" in out
+    assert "use some yy (default=True, --no-yy to disable)" in out
 
 
 def test_override_required():
