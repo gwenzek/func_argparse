@@ -7,7 +7,7 @@ import sys
 from types import FunctionType, ModuleType
 from typing import Any, Callable, Dict, List, Optional, Set, Union
 
-UNION_TYPE = type(Union[int, str])
+_GenericAlias = type(Union[int, str])
 Parser = Callable[[str], Any]
 
 
@@ -119,8 +119,10 @@ def add_fn_subparser(fn: Callable, subparsers: argparse._SubParsersAction):
 
 
 def _is_option_type(t: Callable) -> bool:
+    if not isinstance(t, _GenericAlias):
+        return False
     return (
-        isinstance(t, UNION_TYPE)
+        t.__origin__ == Union
         and len(t.__args__) == 2
         and issubclass(t.__args__[1], type(None))
     )
@@ -153,19 +155,25 @@ def _parse_union(parsers: List[Parser], union, flags: List[str], value: str) -> 
     raise argparse.ArgumentError(action, msg)
 
 
-def _get_parser(t: Parser, flags: List[str]):
+def _get_parser(t: Parser, flags: List[str]) -> Parser:
+    # TODO: this abstraction doesn't hold off, we often need to modify the
+    # underlying 'action' to be consistent with the parser.
+    # this function should receive a reasonable action and only change the parts
+    # needed for this type.
     if isinstance(t, enum.EnumMeta):
         return functools.partial(_parse_enum, t, flags)
     elif _is_option_type(t):
-        assert isinstance(t, UNION_TYPE)
+        assert isinstance(t, _GenericAlias)
         return _get_parser(t.__args__[0], flags)
-    elif isinstance(t, UNION_TYPE):
+    elif isinstance(t, _GenericAlias) and t.__origin__ is Union:
         parsers = [
             _get_parser(st, flags)
             for st in t.__args__
             if not issubclass(st, type(None))
         ]
         return functools.partial(_parse_union, parsers, t, flags)
+    elif isinstance(t, _GenericAlias) and t.__origin__ is list:
+        return _get_parser(t.__args__[0], flags)
     else:
         return t
 
@@ -212,9 +220,14 @@ def func_argparser(
             if a not in defaults:
                 defaults[a] = None
 
+        action = None
+        if isinstance(t, _GenericAlias) and t.__origin__ is list:
+            action = "append"
+
         parser.add_argument(
             *flags,
             type=_get_parser(t, flags),
+            action=action,
             default=defaults.get(a),
             required=a not in defaults,
             help=doc,

@@ -3,7 +3,7 @@ import io
 import pytest
 import sys
 
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 from . import func_argparser, multi_argparser, override
 
@@ -125,6 +125,24 @@ def test_enum():
     check_fail(parser, ["-c", "xx"], "argument -c/--color: invalid choice: 'xx'")
 
 
+def test_list():
+    def f(xx: List[int]):
+        pass
+
+    parser = func_argparser(f)
+    check(parser, ["--xx", "1", "--xx", "2", "--xx", "3"], dict(xx=[1, 2, 3]))
+    check(parser, ["--xx", "1", "-x", "2", "--xx", "3"], dict(xx=[1, 2, 3]))
+    check_fail(parser, [], "the following arguments are required: -x/--xx")
+
+    def g(xx: List[int] = []):
+        pass
+
+    parser = func_argparser(g)
+    check(parser, ["--xx", "1", "--xx", "2", "--xx", "3"], dict(xx=[1, 2, 3]))
+    check(parser, ["--xx", "1", "-x", "2", "--xx", "3"], dict(xx=[1, 2, 3]))
+    check(parser, [], dict(xx=[]))
+
+
 def test_multi():
     def f(xx: int, yy: int = 1):
         pass
@@ -217,7 +235,6 @@ def test_override_type():
     )
 
     override(parser, "xx", type=lambda x: int(x, 0))
-
     check(parser, ["--xx", "0xF00"], dict(xx=0xF00))
 
 
