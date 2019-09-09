@@ -67,24 +67,32 @@ def resolve_public_fns(module: ModuleType = None) -> List[FunctionType]:
     return [fn for fn in fns if fn.__module__ == module.__name__]
 
 
+def get_documentation(fn: Callable) -> List[str]:
+    fn_doc = fn.__doc__.split("\n") if fn.__doc__ else []
+    init_doc: List[str] = []
+    if isinstance(fn, type):
+        init_docstr = fn.__init__.__doc__
+        if init_docstr:
+            init_doc = init_docstr.split()
+
+    return [l.strip() for l in init_doc + fn_doc if l.strip()]
+
+
 def get_fn_description(fn: Callable) -> Optional[str]:
     """Returns the first line of a function doc string."""
-    if not fn.__doc__:
-        return None
-    description = next((l for l in fn.__doc__.split("\n") if l.strip()), None)
-    if not description:
-        return None
-    return description.strip()
+    doc = get_documentation(fn)
+    return doc[0] if doc else None
 
 
 def _get_arguments_description(
     fn: Callable, signature: inspect.FullArgSpec, defaults: Dict[str, Any]
 ) -> Dict[str, str]:
     """Returns a description for each argument."""
-    if not fn.__doc__:
+    lines = get_documentation(fn)
+    if not lines:
         return {}
     descriptions = {}
-    lines = list(filter(None, (l.strip("-* ") for l in fn.__doc__.split("\n"))))
+    lines = list(filter(None, (l.strip("-* ") for l in lines)))
     for a in signature.args:
         # TODO: some arguments may have more than one line of documentation.
         doc = next((l[len(a) :].strip(" :") for l in lines if l.startswith(a)), None)
@@ -186,18 +194,21 @@ def func_argparser(
         parser = argparse.ArgumentParser(description=get_fn_description(fn))
 
     spec = inspect.getfullargspec(fn)
-
-    for a in spec.args:
+    args = spec.args
+    if isinstance(fn, type):
+        # Ignore `self` from `__init__` method.
+        args = args[1:]
+    for a in args:
         assert a in spec.annotations, f"Need a type annotation for argument {a} of {fn}"
 
     if spec.defaults:
-        defaults = dict(zip(reversed(spec.args), reversed(spec.defaults)))
+        defaults = dict(zip(reversed(args), reversed(spec.defaults)))
     else:
         defaults = {}
     args_desc = _get_arguments_description(fn, spec, defaults)
 
     # One letter arguments are given the short flags.
-    prefixes: Set[str] = set(a for a in spec.args if len(a) == 1)
+    prefixes: Set[str] = set(a for a in args if len(a) == 1)
     for a, t in spec.annotations.items():
         if a == "return":
             continue

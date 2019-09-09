@@ -253,3 +253,20 @@ def test_override_choice():
         ["--xx", "baz"],
         "invalid choice: 'baz' (choose from 'foo', 'foobar', 'bar')",
     )
+
+
+def test_class_parser(capsys):
+    class Foo:
+        """Foo documentation"""
+
+        def __init__(self, xx: int):
+            """__init__ documentation"""
+            self.xx = xx
+
+    parser = func_argparser(Foo)
+    check(parser, ["--xx", "3"], dict(xx=3))
+
+    parser.print_help()
+    out = capsys.readouterr().out
+    # Prefer __init__ documentation over Foo ones
+    assert "__init__" in out
