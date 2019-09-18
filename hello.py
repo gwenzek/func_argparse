@@ -1,6 +1,6 @@
 """Say hello or goodbye to the user."""
 
-import func_argparser
+import func_argparse
 
 
 def hello(user: str, times: int = None):
@@ -18,4 +18,4 @@ def bye(user: str, see_you: float = 1.0):
 
 
 if __name__ == "__main__":
-    func_argparser.main()
+    func_argparse.main()

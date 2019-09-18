@@ -1,4 +1,4 @@
-# func_argparser
+# func_argparse
 
 Generate a nice command line interface for a list of functions or a module.
 Never worry about your Argparser being out of sync with your code.
@@ -9,7 +9,7 @@ In a 'hello.py' file:
 ```py
 """Say hello or goodbye to the user."""
 
-import func_argparser
+import func_argparse
 
 
 def hello(user: str, times: int = None):
@@ -27,7 +27,7 @@ def bye(user: str, see_you: float = 1.0):
 
 
 if __name__ == "__main__":
-    func_argparser.main()
+    func_argparse.main()
 ```
 
 From CLI:
@@ -70,8 +70,8 @@ optional arguments:
 
 ## Gotchas
 
-- `func_argparser.main()` create one CLI command by "public" function from a file / module.
-- Use `func_argparser.single_main(my_main)` if you only have one entry point in your file.
+- `func_argparse.main()` create one CLI command by "public" function from a file / module.
+- Use `func_argparse.single_main(my_main)` if you only have one entry point in your file.
 - All functions arguments need a type hint.
 - Arguments without default value will be marked as required.
 - A boolean argument `a` will generate two flags: `--a` and `--no-a`.
@@ -83,6 +83,7 @@ optional arguments:
     Spaces, dashes and columns will be stripped before displaying.
 - Some kind of functions (notably builtin and C-function) can't be inspected and
   we can't generate Argparser for them.
-- `fn_argparser` works with classics `argparse.Argparser` you can mix and match
+- `func_argparse` generate classics `argparse.Argparser` you can mix and match
   them with hand-written parsers.
 - You can't have a function with an argument named `__command` when using `main` or `multi_parser`.
+- If you don't like the generated parser, you can modify it using `override` function.

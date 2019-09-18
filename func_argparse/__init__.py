@@ -71,7 +71,7 @@ def get_documentation(fn: Callable) -> List[str]:
     fn_doc = fn.__doc__.split("\n") if fn.__doc__ else []
     init_doc: List[str] = []
     if isinstance(fn, type):
-        init_docstr = fn.__init__.__doc__
+        init_docstr = fn.__init__.__doc__  # type: ignore
         if init_docstr:
             init_doc = init_docstr.split()
 
@@ -231,7 +231,7 @@ def func_argparser(
             if a not in defaults:
                 defaults[a] = None
 
-        action = None
+        action = "store"
         if isinstance(t, _GenericAlias) and t.__origin__ is list:
             action = "append"
 
