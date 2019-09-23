@@ -2,6 +2,7 @@
 
 Generate a nice command line interface for a list of functions or a module.
 Never worry about your Argparser being out of sync with your code.
+Try it with `pip install func_argparse`.
 
 ## Example
 

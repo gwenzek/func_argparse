@@ -25,9 +25,13 @@ def main(*fns: Callable, description: str = None, module: ModuleType = None):
 
 def single_main(fn: Callable):
     """Parses command line arguments and call the given function with them."""
+    return make_single_main(fn)(sys.argv[1:])
+
+
+def make_single_main(fn: Callable):
+    """Parses command line arguments and call the given function with them."""
     parser = func_argparser(fn)
-    args = parser.parse_args(sys.argv[1:])
-    return fn(**vars(args))
+    return lambda args: fn(**vars(parser.parse_args(args)))
 
 
 def make_main(*fns: Callable, module: ModuleType = None, description=None):
@@ -73,7 +77,7 @@ def get_documentation(fn: Callable) -> List[str]:
     if isinstance(fn, type):
         init_docstr = fn.__init__.__doc__  # type: ignore
         if init_docstr:
-            init_doc = init_docstr.split()
+            init_doc = init_docstr.split("\n")
 
     return [l.strip() for l in init_doc + fn_doc if l.strip()]
 
@@ -209,6 +213,8 @@ def func_argparser(
 
     # One letter arguments are given the short flags.
     prefixes: Set[str] = set(a for a in args if len(a) == 1)
+    # -h is always for help.
+    prefixes.add("h")
     for a, t in spec.annotations.items():
         if a == "return":
             continue

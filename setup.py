@@ -11,7 +11,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/gwenzek/func_argparse",
-    version="1.0.1",
+    version="1.0.2",
     author="gwenzek",
     packages=["func_argparse"],
     license="BSD",
