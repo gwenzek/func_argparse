@@ -3,7 +3,7 @@ import io
 import pytest
 import sys
 
-from typing import List, Optional, Union
+from typing import List, Optional, Sequence, Union
 
 from . import func_argparser, make_single_main, multi_argparser, override
 
@@ -141,6 +141,13 @@ def test_list():
     check(parser, ["--xx", "1", "--xx", "2", "--xx", "3"], dict(xx=[1, 2, 3]))
     check(parser, ["--xx", "1", "-x", "2", "--xx", "3"], dict(xx=[1, 2, 3]))
     check(parser, [], dict(xx=[]))
+
+    # Also works with Sequence.
+    def h(xx: Sequence[int] = []):
+        ...
+
+    parser = func_argparser(h)
+    check(parser, ["--xx", "1", "--xx", "2", "--xx", "3"], dict(xx=[1, 2, 3]))
 
 
 def test_multi():

@@ -1,11 +1,12 @@
 import argparse
+import collections
 import enum
 import inspect
 import functools
 import sys
 
 from types import FunctionType, ModuleType
-from typing import Any, Callable, Dict, List, Optional, Set, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Type, Union
 
 _GenericAlias = type(Union[int, str])
 Parser = Callable[[str], Any]
@@ -140,6 +141,15 @@ def _is_option_type(t: Callable) -> bool:
     )
 
 
+def _get_list_contained_type(t: Callable) -> Optional[Type]:
+    if not isinstance(t, _GenericAlias):
+        return None
+    if t.__origin__ not in (list, collections.abc.Sequence):
+        return None
+
+    return t.__args__[0]
+
+
 def _parse_enum(enum: enum.EnumMeta, flags: List[str], value: str) -> enum.Enum:
     members = tuple(enum.__members__)
     # enum members might be case sensitive.
@@ -174,18 +184,20 @@ def _get_parser(t: Parser, flags: List[str]) -> Parser:
     # needed for this type.
     if isinstance(t, enum.EnumMeta):
         return functools.partial(_parse_enum, t, flags)
-    elif _is_option_type(t):
+    if _is_option_type(t):
         assert isinstance(t, _GenericAlias)
         return _get_parser(t.__args__[0], flags)
-    elif isinstance(t, _GenericAlias) and t.__origin__ is Union:
+    if isinstance(t, _GenericAlias) and t.__origin__ is Union:
         parsers = [
             _get_parser(st, flags)
             for st in t.__args__
             if not issubclass(st, type(None))
         ]
         return functools.partial(_parse_union, parsers, t, flags)
-    elif isinstance(t, _GenericAlias) and t.__origin__ is list:
-        return _get_parser(t.__args__[0], flags)
+
+    ct = _get_list_contained_type(t)
+    if ct is not None:
+        return _get_parser(ct, flags)
     else:
         return t
 
@@ -238,7 +250,7 @@ def func_argparser(
                 defaults[a] = None
 
         action = "store"
-        if isinstance(t, _GenericAlias) and t.__origin__ is list:
+        if _get_list_contained_type(t) is not None:
             action = "append"
 
         parser.add_argument(
