@@ -6,10 +6,23 @@ import functools
 import sys
 
 from types import FunctionType, ModuleType
-from typing import Any, Callable, Dict, List, Optional, Set, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Type,
+    TypeVar,
+    Union,
+)
 
 _GenericAlias = type(Union[int, str])
 Parser = Callable[[str], Any]
+
+R = TypeVar("R", covariant=True)
 
 
 def main(*fns: Callable, description: str = None, module: ModuleType = None):
@@ -24,18 +37,24 @@ def main(*fns: Callable, description: str = None, module: ModuleType = None):
     return make_main(*fns, module=module, description=description)(sys.argv[1:])
 
 
-def single_main(fn: Callable):
+def single_main(fn: Callable[..., R]) -> R:
     """Parses command line arguments and call the given function with them."""
     return make_single_main(fn)(sys.argv[1:])
 
 
-def make_single_main(fn: Callable):
+def make_single_main(fn: Callable[..., R]) -> Callable[[Sequence[str]], R]:
     """Parses command line arguments and call the given function with them."""
     parser = func_argparser(fn)
-    return lambda args: fn(**vars(parser.parse_args(args)))
+
+    def _main(args: Sequence[str]) -> R:
+        return fn(**vars(parser.parse_args(args)))
+
+    return _main
 
 
-def make_main(*fns: Callable, module: ModuleType = None, description=None):
+def make_main(
+    *fns: Callable, module: ModuleType = None, description=None
+) -> Callable[[Sequence[str]], Any]:
     """Creates a main method for the given module / list of functions.
 
     The returned method expects a list of command line arguments.
@@ -48,7 +67,7 @@ def make_main(*fns: Callable, module: ModuleType = None, description=None):
         fns = tuple(resolve_public_fns(module))
     parser = multi_argparser(*fns, description=description)
 
-    def main(args: List[str]):
+    def main(args: Sequence[str]):
         parsed_args = vars(parser.parse_args(args))
         command = parsed_args.pop("__command", None)
         if not command:

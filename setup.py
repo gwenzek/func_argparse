@@ -11,9 +11,13 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/gwenzek/func_argparse",
-    version="1.0.2",
+    version="1.0.3",
     author="gwenzek",
     packages=["func_argparse"],
     license="BSD",
     install_requires=[],
+    # Mark the package as compatible with types.
+    # https://mypy.readthedocs.io/en/latest/installed_packages.html#making-pep-561-compatible-packages
+    package_data={"func_argparse": ["py.typed"]},
+    zip_safe=False,
 )
