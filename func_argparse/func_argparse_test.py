@@ -3,17 +3,20 @@ import io
 import pytest
 import sys
 
+from argparse import ArgumentParser
 from typing import List, Optional, Sequence, Union
 
 from . import func_argparser, make_single_main, multi_argparser, override
 
 
-def check(parser, args, expected):
+def check(parser: ArgumentParser, args: Union[str, Sequence[str]], expected: dict):
+    if isinstance(args, str):
+        args = args.split()
     parsed = parser.parse_args(args)
     assert expected == vars(parsed)
 
 
-def check_fail(parser, args, error):
+def check_fail(parser: ArgumentParser, args: Union[str, Sequence[str]], error: str):
     err = sys.stderr
     try:
         sys.stderr = io.StringIO()
@@ -160,10 +163,25 @@ def test_multi():
     def h(xx: Optional[str]):
         ...
 
-    parser = multi_argparser(f, g, h)
+    parser = multi_argparser([f, g, h])
     check(parser, ["f", "--xx", "1"], dict(__command=f, xx=1, yy=1))
     check(parser, ["g", "--xx"], dict(__command=g, xx=True, yy=False))
     check(parser, ["h", "--xx", "foo"], dict(__command=h, xx="foo"))
+
+
+def test_multi_with_override():
+    def f(xx: int):
+        ...
+
+    def g(xx: bool, yy: bool = False):
+        ...
+
+    f_parser = func_argparser(f)
+    f_parser.add_argument("--config", type=str, default="foo")
+    parser = multi_argparser({f: f_parser, g: func_argparser(g)})
+    check(parser, "f --xx 1", dict(__command=f, xx=1, config="foo"))
+    check(parser, "f -x 2 --config bar", dict(__command=f, xx=2, config="bar"))
+    check(parser, "g --xx", dict(__command=g, xx=True, yy=False))
 
 
 def test_flag_collision():

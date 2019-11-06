@@ -65,7 +65,7 @@ def make_main(
         description = module.__doc__
     if not fns:
         fns = tuple(resolve_public_fns(module))
-    parser = multi_argparser(*fns, description=description)
+    parser = multi_argparser(fns, description=description)
 
     def main(args: Sequence[str]):
         parsed_args = vars(parser.parse_args(args))
@@ -134,12 +134,36 @@ def _get_arguments_description(
     return descriptions
 
 
-def multi_argparser(*fns: Callable, description: str = None) -> argparse.ArgumentParser:
-    """Creates an ArgumentParser with one subparser for each given function."""
+def multi_argparser(
+    parsers: Union[Sequence[Callable], Dict[Callable, argparse.ArgumentParser]],
+    description: str = None,
+) -> argparse.ArgumentParser:
+    """Creates an ArgumentParser with one subparser for each given function.
+
+    Args:
+        - parsers: a list of functions or a dict fn -> parser
+        - description: description of the full parser
+
+    Note:
+        `multi_argparser([f])` <=> `multi_argparser({f: func_argparser(f)})`
+    """
+
+    if not isinstance(parsers, dict):
+        fns: Sequence[Callable] = parsers
+        parsers = {fn: func_argparser(fn) for fn in fns}
+
     parser = argparse.ArgumentParser(description=description, add_help=True)
     subparsers = parser.add_subparsers()
-    for fn in fns:
-        add_fn_subparser(fn, subparsers)
+
+    for fn, p in parsers.items():
+        # TODO: allow aliases
+        aliases: List[str] = []
+        name = fn.__name__
+        _help = get_fn_description(fn)
+        subparsers._name_parser_map[name] = p
+        choice_action = subparsers._ChoicesPseudoAction(name, aliases, _help)
+        subparsers._choices_actions.append(choice_action)
+        p.set_defaults(__command=fn)
 
     return parser
 
@@ -288,10 +312,11 @@ def override(
     name: str,
     short_name: str = None,
     # action: str = None,
-    # nargs: str =None,
+    # nargs: str = None,
+    # aliases: List[str] = None,
     default: Any = None,
     type: Any = None,
-    choices: Any = None,
+    choices: Sequence[str] = None,
     required: bool = None,
     help: str = None,
     metavar: str = None,
