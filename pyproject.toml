@@ -1,0 +1,35 @@
+[pytest]
+testpaths = "tests"
+
+[tool.black]
+line_length = 88
+target_version = ["py37"]
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+line_length = 88
+
+[mypy]
+python_version = 3.7
+check_untyped_defs = true
+show_error_codes = true
+warn_redundant_casts = true
+warn_unused_configs = true
+
+# Use strict config for the module, and flexible one for tests.
+[mypy-func_argparse]
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_untyped_defs = true
+no_implicit_reexport = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_ignores = true
+

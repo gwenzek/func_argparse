@@ -1,19 +1,29 @@
 import enum
 import io
-import pytest
 import sys
-
 from argparse import ArgumentParser
 from typing import List, Optional, Sequence, Union
 
-from . import func_argparser, make_single_main, multi_argparser, override
+import pytest  # type: ignore[import]
+
+from func_argparse import (
+    COMMAND_KEY,
+    func_argparser,
+    make_single_main,
+    multi_argparser,
+    override,
+)
 
 
 def check(parser: ArgumentParser, args: Union[str, Sequence[str]], expected: dict):
     if isinstance(args, str):
         args = args.split()
-    parsed = parser.parse_args(args)
-    assert expected == vars(parsed)
+    parsed = vars(parser.parse_args(args))
+    if COMMAND_KEY not in expected:
+        # COMMAND_KEY is set for all parsers.
+        # only check it when explicitly required.
+        parsed.pop(COMMAND_KEY)
+    assert expected == parsed
 
 
 def check_fail(parser: ArgumentParser, args: Union[str, Sequence[str]], error: str):
@@ -169,15 +179,16 @@ def test_multi():
     check(parser, ["h", "--xx", "foo"], dict(__command=h, xx="foo"))
 
 
-def test_multi_with_override():
-    def f(xx: int):
+def test_multi_with_override() -> None:
+    def f(xx: int) -> None:
         ...
 
-    def g(xx: bool, yy: bool = False):
+    def g(xx: bool, yy: bool = False) -> int:
         ...
 
     f_parser = func_argparser(f)
     f_parser.add_argument("--config", type=str, default="foo")
+    parser = multi_argparser([f, g])
     parser = multi_argparser({f: f_parser, g: func_argparser(g)})
     check(parser, "f --xx 1", dict(__command=f, xx=1, config="foo"))
     check(parser, "f -x 2 --config bar", dict(__command=f, xx=2, config="bar"))
