@@ -1,6 +1,6 @@
 # func_argparse
 
-Generate a nice command line interface for a list of functions or a module.
+Generate a nice command line interface for a list of functions or a module, leveraging your doc-strings and type annotations.
 Never worry about your Argparser being out of sync with your code.
 Try it with `pip install func_argparse`.
 
@@ -71,6 +71,7 @@ optional arguments:
 
 ## Gotchas
 
+- `func_argparse` generate classics `argparse.Argparser` you can mix and match them with hand-written parsers.
 - `func_argparse.main()` create one CLI command by "public" function from a file / module.
 - Use `func_argparse.single_main(my_main)` if you only have one entry point in your file.
 - All functions arguments need a type hint.
@@ -84,7 +85,14 @@ optional arguments:
     Spaces, dashes and columns will be stripped before displaying.
 - Some kind of functions (notably builtin and C-function) can't be inspected and
   we can't generate Argparser for them.
-- `func_argparse` generate classics `argparse.Argparser` you can mix and match
-  them with hand-written parsers.
 - You can't have a function with an argument named `__command` when using `main` or `multi_parser`.
 - If you don't like the generated parser, you can modify it using `override` function.
+
+
+## Alternatives
+
+Here are other alternatives you might be interested in.
+
+- [argparse](https://docs.python.org/3/library/argparse.html): the builtin library upon which `func_argparse` is built. Grants a very precise control on the CLI but is a bit verbose and prone to go out-of-sync with the code.
+- [fire](https://github.com/google/python-fire): also generates parser with introspection but doesn't leverage types. So the types of arguments is determined at parse time. Can generate completion files.
+- [click](https://palletsprojects.com/p/click/): uses function annotations to generate the CLI.
