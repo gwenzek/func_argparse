@@ -27,7 +27,7 @@ jobs:
             pip install --upgrade pip
             python --version
             pip --version
-            pip install --progress-bar off .
+            pip install --progress-bar off ".[dev]"
       - save_cache:
           paths:
             - ./venv

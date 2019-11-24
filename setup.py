@@ -20,4 +20,5 @@ setup(
     # https://mypy.readthedocs.io/en/latest/installed_packages.html#making-pep-561-compatible-packages
     package_data={"func_argparse": ["py.typed"]},
     zip_safe=False,
+    extras_require={"dev": ["mypy>=0.730", "pytest", "black", "isort"]},
 )
