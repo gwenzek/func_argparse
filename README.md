@@ -96,3 +96,20 @@ Here are other alternatives you might be interested in.
 - [argparse](https://docs.python.org/3/library/argparse.html): the builtin library upon which `func_argparse` is built. Grants a very precise control on the CLI but is a bit verbose and prone to go out-of-sync with the code.
 - [fire](https://github.com/google/python-fire): also generates parser with introspection but doesn't leverage types. So the types of arguments is determined at parse time. Can generate completion files.
 - [click](https://palletsprojects.com/p/click/): uses function annotations to generate the CLI.
+
+## Contibuting
+
+All contributions are welcome.
+Code formatting is enforced with `isort`, `black`.
+Types annotations are required for the main module and checked with `mypy`.
+Tests are run with `pytest`.
+
+Run `pip install ".[dev]"` to install the required modules
+Run `./tools.sh all` to format your code and run `mypy` and `pytest`.
+
+
+## TODOs
+
+* Add all parameters from `add_argument` to `override`
+* Chose one from Circle CI and Github Workflows
+* Make it easy to parse a comma separated list of argument
