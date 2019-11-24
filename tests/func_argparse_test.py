@@ -2,7 +2,7 @@ import enum
 import io
 import sys
 from argparse import ArgumentParser
-from typing import List, Optional, Sequence, Union, NamedTuple
+from typing import List, NamedTuple, Optional, Sequence, Union
 
 import pytest  # type: ignore[import]
 
@@ -325,6 +325,7 @@ def test_class_parser(capsys):
 def test_named_tuple_parser(capsys):
     class Foo(NamedTuple):
         """Foo documentation"""
+
         xx: int
 
     parser = func_argparser(Foo)
