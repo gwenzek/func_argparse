@@ -316,8 +316,10 @@ def func_argparser(
                 defaults[a] = None
 
         action = "store"
-        if _get_list_contained_type(t) is not None:
+        t_contained = _get_list_contained_type(t)
+        if t_contained is not None:
             action = "append"
+            t = t_contained
 
         parser.add_argument(
             *flags,
@@ -338,7 +340,7 @@ def override(
     # nargs: str = None,
     # aliases: List[str] = None,
     default: Any = None,
-    type: Any = None,
+    type: Callable[[str], Any] = None,
     choices: Sequence[str] = None,
     required: bool = None,
     help: str = None,
