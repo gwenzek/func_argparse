@@ -106,9 +106,11 @@ def get_documentation(fn: AnyCallable) -> List[str]:
         # be weird or too generic. Yet we don't want to force the user to override
         # parent init method just so they can change the docstring.
         # In this case we probably just want to use the class docstring first.
-        init_docstr = fn.__init__.__doc__  # type: ignore
+        init_docstr = fn.__init__.__doc__  # type: ignore[misc]
         if init_docstr:
-            init_doc = init_docstr.split("\n")
+            # tuple.__init__.__doc__ isn't helpful so we ignore it.
+            if fn.__init__ != tuple.__init__:  # type: ignore[misc]
+                init_doc = init_docstr.split("\n")
 
     return [l.strip() for l in init_doc + fn_doc if l.strip()]
 

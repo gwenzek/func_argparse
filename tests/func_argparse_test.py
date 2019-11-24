@@ -2,7 +2,7 @@ import enum
 import io
 import sys
 from argparse import ArgumentParser
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Sequence, Union, NamedTuple
 
 import pytest  # type: ignore[import]
 
@@ -283,6 +283,10 @@ def test_override_type():
     override(parser, "xx", type=lambda x: int(x, 0))
     check(parser, ["--xx", "0xF00"], dict(xx=0xF00))
 
+    # overriding is reversible
+    override(parser, "xx", type=int)
+    check(parser, ["--xx", "0"], dict(xx=0))
+
 
 def test_override_choice():
     def f(xx: str):
@@ -316,6 +320,20 @@ def test_class_parser(capsys):
     out = capsys.readouterr().out
     # Prefer __init__ documentation over Foo ones
     assert "__init__ documentation" in out
+
+
+def test_named_tuple_parser(capsys):
+    class Foo(NamedTuple):
+        """Foo documentation"""
+        xx: int
+
+    parser = func_argparser(Foo)
+    check(parser, ["--xx", "3"], dict(xx=3))
+
+    parser.print_help()
+    out = capsys.readouterr().out
+    # Prefer Foo documentation over default one
+    assert "Foo documentation" in out
 
 
 def test_class_as_main():
