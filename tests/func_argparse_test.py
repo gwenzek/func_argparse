@@ -189,10 +189,10 @@ def test_multi_with_override() -> None:
     f_parser = func_argparser(f)
     f_parser.add_argument("--config", type=str, default="foo")
     parser = multi_argparser([f, g])
-    parser = multi_argparser({f: f_parser, g: func_argparser(g)})
-    check(parser, "f --xx 1", dict(__command=f, xx=1, config="foo"))
-    check(parser, "f -x 2 --config bar", dict(__command=f, xx=2, config="bar"))
-    check(parser, "g --xx", dict(__command=g, xx=True, yy=False))
+    parser = multi_argparser({"foo": f_parser, "bar": func_argparser(g)})
+    check(parser, "foo --xx 1", dict(__command=f, xx=1, config="foo"))
+    check(parser, "foo -x 2 --config bar", dict(__command=f, xx=2, config="bar"))
+    check(parser, "bar --xx", dict(__command=g, xx=True, yy=False))
 
 
 def test_flag_collision():

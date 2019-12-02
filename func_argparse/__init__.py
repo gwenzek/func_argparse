@@ -29,7 +29,7 @@ R = typing.TypeVar("R", covariant=True)
 COMMAND_KEY = "__command"
 
 
-def main(*fns: FunctionType, description: str = None, module: ModuleType = None) -> Any:
+def main(*fns: AnyCallable, description: str = None, module: ModuleType = None) -> Any:
     """Parses command line arguments and call the chosen function with them.
 
     Arguments:
@@ -149,7 +149,7 @@ def _get_arguments_description(
 
 @overload
 def multi_argparser(
-    parsers: Dict[AnyCallable, ArgumentParser], description: str = None
+    parsers: Dict[str, ArgumentParser], description: str = None
 ) -> ArgumentParser:
     ...
 
@@ -176,20 +176,18 @@ def multi_argparser(  # type: ignore[no-untyped-def]
 
     if not isinstance(parsers, dict):
         fns: Iterable[AnyCallable] = parsers
-        parsers = {fn: func_argparser(fn) for fn in fns}
+        parsers = {fn.__name__: func_argparser(fn) for fn in fns}
 
     parser = ArgumentParser(description=description, add_help=True)
     subparsers = parser.add_subparsers()
 
-    for fn, p in parsers.items():
+    for name, p in parsers.items():
         # TODO: allow aliases
         aliases: List[str] = []
-        name = fn.__name__
-        _help = get_fn_description(fn)
+        _help = p.description
         subparsers._name_parser_map[name] = p
         choice_action = subparsers._ChoicesPseudoAction(name, aliases, _help)
         subparsers._choices_actions.append(choice_action)
-        p.set_defaults(**{COMMAND_KEY: fn})
 
     return parser
 
