@@ -71,8 +71,10 @@ optional arguments:
 
 ## Gotchas
 
-- `func_argparse` generate classics `argparse.Argparser` you can mix and match them with hand-written parsers.
-- `func_argparse.main()` create one CLI command by "public" function from a file / module.
+- `func_argparse` generates classics `argparse.Argparser`, you can mix and match them with hand-written parsers.
+- `func_argparse.main()` creates one CLI command by "public" function from a file / module.
+- `func_argparse.main(status, push)` creates one CLI command for the two functions `status` and `push`.
+- `func_argparse.main(ls=list_files)` creates one CLI command `ls` for the function `list_files`.
 - Use `func_argparse.single_main(my_main)` if you only have one entry point in your file.
 - All functions arguments need a type hint.
 - Arguments without default value will be marked as required.
@@ -83,9 +85,9 @@ optional arguments:
   - First line is used as help message for the function
   - First line starting with `a` will be used to extract the documentation for argument `a`.
     Spaces, dashes and columns will be stripped before displaying.
-- Some kind of functions (notably builtin and C-function) can't be inspected and
+- Some kind of functions (notably builtins and C-function) can't be inspected and
   we can't generate Argparser for them.
-- You can't have a function with an argument named `__command` when using `main` or `multi_parser`.
+- You can't have a function argument named `__command`.
 - If you don't like the generated parser, you can modify it using `override` function.
 
 
