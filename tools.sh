@@ -50,4 +50,11 @@ function all() {
     _run_all "fmt $1" types test
 }
 
+function release() {
+    all --check
+    rm -r dist
+    python setup.py sdist bdist_wheel
+    python -m twine upload -u gwenzek dist/*
+}
+
 $@

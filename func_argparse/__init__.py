@@ -58,7 +58,7 @@ def make_main(
     return _make_main(parser)
 
 
-def parse_and_call(parser: ArgumentParser, args: Optional[Sequence[str]]) -> Any:
+def parse_and_call(parser: ArgumentParser, args: Sequence[str] = None) -> Any:
     parsed_args = vars(parser.parse_args(args))
     if not parsed_args:
         # Show help for multi argparser receiving no arguments.

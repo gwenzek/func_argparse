@@ -111,5 +111,5 @@ Run `./tools.sh all` to format your code and run `mypy` and `pytest`.
 ## TODOs
 
 * Add all parameters from `add_argument` to `override`
-* Chose one from Circle CI and Github Workflows
 * Make it easy to parse a comma separated list of argument
+* Add an OOP interface by sub-classing ArgumentParser
