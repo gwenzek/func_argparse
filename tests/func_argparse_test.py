@@ -12,6 +12,7 @@ from func_argparse import (
     make_single_main,
     multi_argparser,
     override,
+    parse_and_call,
 )
 
 
@@ -254,6 +255,20 @@ def test_help_bool_flag(capsys):
     assert "Awesome documentation." in out
     assert "use some xx (default=False)" in out
     assert "use some yy (default=True, --no-yy to disable)" in out
+
+
+def test_multi_with_no_command_shows_help(capsys):
+    def f():
+        ...
+
+    def g():
+        ...
+
+    parser = multi_argparser(f, g, description="Awesome documentation")
+    with pytest.raises(SystemExit):
+        parse_and_call(parser, [])
+    out = capsys.readouterr().out
+    assert "Awesome documentation" in out
 
 
 def test_override_required():
