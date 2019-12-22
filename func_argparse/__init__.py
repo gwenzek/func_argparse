@@ -7,19 +7,7 @@ import sys
 import typing
 from argparse import ArgumentParser
 from types import FunctionType, ModuleType
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Sequence,
-    Set,
-    Type,
-    Union,
-    overload,
-)
+from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Type, Union
 
 AnyCallable = Callable[..., Any]
 _GenericAlias = type(Union[int, str])
@@ -65,7 +53,7 @@ def make_main(
         description = module.__doc__
     if not fns:
         fns = tuple(resolve_public_fns(module))
-    parser = multi_argparser(fns, description=description)
+    parser = multi_argparser(*fns, description=description)
 
     return _make_main(parser)
 
@@ -147,36 +135,23 @@ def _get_arguments_description(
     return descriptions
 
 
-@overload
 def multi_argparser(
-    parsers: Dict[str, ArgumentParser], description: str = None
-) -> ArgumentParser:
-    ...
-
-
-@overload
-def multi_argparser(
-    parsers: Iterable[AnyCallable], description: str = None
-) -> ArgumentParser:
-    ...
-
-
-def multi_argparser(  # type: ignore[no-untyped-def]
-    parsers, description: str = None
+    *fns: AnyCallable, description: str = None, **parsers: ArgumentParser
 ) -> ArgumentParser:
     """Creates an ArgumentParser with one subparser for each given function.
 
     Args:
-        - parsers: a list of functions or a dict fn -> parser
+        - fns: functions
+        - parsers: already created parser
         - description: description of the full parser
 
     Note:
-        `multi_argparser([f])` <=> `multi_argparser({f: func_argparser(f)})`
+        `multi_argparser(f)` <=> `multi_argparser(f=func_argparser(f))`
     """
 
-    if not isinstance(parsers, dict):
-        fns: Iterable[AnyCallable] = parsers
-        parsers = {fn.__name__: func_argparser(fn) for fn in fns}
+    for fn in fns:
+        assert fn.__name__ not in parsers, f"Name of {fn} is already used."
+        parsers[fn.__name__] = func_argparser(fn)
 
     parser = ArgumentParser(description=description, add_help=True)
     subparsers = parser.add_subparsers()

@@ -173,7 +173,7 @@ def test_multi():
     def h(xx: Optional[str]):
         ...
 
-    parser = multi_argparser([f, g, h])
+    parser = multi_argparser(f, g, h)
     check(parser, ["f", "--xx", "1"], dict(__command=f, xx=1, yy=1))
     check(parser, ["g", "--xx"], dict(__command=g, xx=True, yy=False))
     check(parser, ["h", "--xx", "foo"], dict(__command=h, xx="foo"))
@@ -188,8 +188,8 @@ def test_multi_with_override() -> None:
 
     f_parser = func_argparser(f)
     f_parser.add_argument("--config", type=str, default="foo")
-    parser = multi_argparser([f, g])
-    parser = multi_argparser({"foo": f_parser, "bar": func_argparser(g)})
+    parser = multi_argparser(f, g)
+    parser = multi_argparser(foo=f_parser, bar=func_argparser(g))
     check(parser, "foo --xx 1", dict(__command=f, xx=1, config="foo"))
     check(parser, "foo -x 2 --config bar", dict(__command=f, xx=2, config="bar"))
     check(parser, "bar --xx", dict(__command=g, xx=True, yy=False))
