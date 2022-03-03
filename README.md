@@ -89,6 +89,9 @@ optional arguments:
   we can't generate Argparser for them.
 - You can't have a function argument named `__command`.
 - If you don't like the generated parser, you can modify it using `override` function.
+- If you'd like to customize parser generation process:
+  - Make your own `ArgumentParser` generator by subclassing `ArgparserGenerator`
+  - Activate it by calling `set_default_generator(MyArgparserGenerator)`
 
 
 ## Alternatives
