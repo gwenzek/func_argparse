@@ -163,9 +163,8 @@ def multi_argparser(
     for name, p in parsers.items():
         # TODO: allow aliases
         aliases: List[str] = []
-        _help = p.description
         subparsers._name_parser_map[name] = p
-        choice_action = subparsers._ChoicesPseudoAction(name, aliases, _help)
+        choice_action = subparsers._ChoicesPseudoAction(name, aliases, p.description)
         subparsers._choices_actions.append(choice_action)
 
     return parser
@@ -276,8 +275,13 @@ def func_argparser(
         if a == "return":
             continue
         doc = args_desc.get(a)
+        # TODO: allow dash in flags instead of underscore
+        # TODO: handle position only arguments
+        # TODO: handle *args
+        # TODO: handle **kwargs
         flags = [f"--{a}"]
         if len(a) == 1 or a[0] not in prefixes:
+            # TODO: Should we leverage upper case to have more one letter flags ?
             flags.insert(0, f"-{a[0]}")
             prefixes.add(a[0])
 
